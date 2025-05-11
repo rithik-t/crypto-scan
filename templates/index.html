@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crypto Scam Detector</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>🔍 Crypto Scam Detector</h2>
+        <form id="checkForm">
+            <input type="text" name="token" placeholder="Enter token name (e.g., bitcoin)" required />
+            <button type="submit">Check</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById("checkForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const res = await fetch("/check", { method: "POST", body: formData });
+            const data = await res.json();
+
+            let result = document.getElementById("result");
+            if (data.status === "found") {
+                result.innerHTML = `
+                    <p><strong>Symbol:</strong> ${data.result.symbol}</p>
+                    <p><strong>Market Cap:</strong> $${data.result.market_cap}</p>
+                    <p><strong>Risk:</strong> ${data.result.is_risky ? '⚠️ RISKY' : '✅ SAFE'}</p>
+                `;
+            } else {
+                result.innerHTML = `<p>❌ Token not found or error occurred.</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

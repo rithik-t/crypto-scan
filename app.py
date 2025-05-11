@@ -1,0 +1,43 @@
+from flask import Flask, render_template, request, jsonify
+import requests
+
+app = Flask(__name__)
+
+def check_token_info(token_name):
+    try:
+        url = f"https://api.coingecko.com/api/v3/coins/{token_name.lower()}"
+        res = requests.get(url)
+        data = res.json()
+
+        if 'error' in data:
+            return {"status": "not_found"}
+
+        market_data = data.get("market_data", {})
+        score = {
+            "is_risky": False,
+            "market_cap": market_data.get("market_cap", {}).get("usd", 0),
+            "holders": "Not Available",
+            "liquidity": "Not Available",
+            "symbol": data.get("symbol", "")
+        }
+
+        # Simple flagging rule: if no market cap or it's very low
+        if score["market_cap"] < 1000000:
+            score["is_risky"] = True
+
+        return {"status": "found", "result": score}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/check', methods=['POST'])
+def check():
+    token = request.form.get('token')
+    result = check_token_info(token)
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(debug=True)
