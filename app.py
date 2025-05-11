@@ -5,12 +5,17 @@ app = Flask(__name__)
 
 def check_token_info(token_name):
     try:
-        url = f"https://api.coingecko.com/api/v3/coins/{token_name.lower()}"
+        # Ensure the token name is in a valid format (e.g., lowercase, no spaces)
+        token_name = token_name.strip().lower()
+        if not token_name.isalnum():
+            return {"status": "error", "message": "Invalid token name. Please enter a valid cryptocurrency token name."}
+
+        url = f"https://api.coingecko.com/api/v3/coins/{token_name}"
         res = requests.get(url)
         data = res.json()
 
         if 'error' in data:
-            return {"status": "not_found"}
+            return {"status": "not_found", "message": "Token not found in the database."}
 
         market_data = data.get("market_data", {})
         score = {
@@ -26,8 +31,10 @@ def check_token_info(token_name):
             score["is_risky"] = True
 
         return {"status": "found", "result": score}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": f"API request failed: {str(e)}"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
 
 @app.route('/')
 def home():
@@ -36,6 +43,9 @@ def home():
 @app.route('/check', methods=['POST'])
 def check():
     token = request.form.get('token')
+    if not token:
+        return jsonify({"status": "error", "message": "Token name is required!"})
+
     result = check_token_info(token)
     return jsonify(result)
 
